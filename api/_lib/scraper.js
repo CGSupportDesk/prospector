@@ -268,6 +268,7 @@ function addMentionedProfiles(results, seen, title = '', snippet = '', angle = '
   while ((match = mentionPattern.exec(content)) !== null) {
     const handle = match[1].toLowerCase().replace(/\.+$/, '');
     if (!handle || blockedMentions.has(handle)) continue;
+    if (isBadMentionContext(content, match.index, handle)) continue;
     addSerpResult(results, seen, `https://instagram.com/${handle}`, handle, snippet, angle, 'mention');
   }
 }
@@ -368,6 +369,8 @@ function isRelevantInstagramLead(category, location, result) {
     .filter((part) => part.length >= 3);
 
   if (looksLikeCreatorProfile(titleAndUrl) && result.source_type !== 'mention') return false;
+  if (result.source_type !== 'mention' && looksLikeCreatorSnippet(snippet)) return false;
+  if (result.source_type === 'mention' && isAdminOrCreatorMention(result.url, snippet)) return false;
 
   const hasStrongCategorySignal = terms.some((term) => titleAndUrl.includes(term.toLowerCase()));
   if (hasStrongCategorySignal) return true;
@@ -380,7 +383,10 @@ function isRelevantInstagramLead(category, location, result) {
   if (!hasSnippetCategorySignal) return false;
 
   const hasLocationSignal = locationSignals.some((term) => snippet.includes(term));
-  if (result.source_type === 'mention') return hasLocationSignal || hasBusinessSignal(snippet);
+  if (result.source_type === 'mention') {
+    if (hasBusinessProfileNameSignal(titleAndUrl)) return true;
+    return hasLocationSignal && hasBusinessSignal(snippet);
+  }
 
   const snippetCategoryHits = terms.filter((term) => snippet.includes(term.toLowerCase())).length;
   if (snippetCategoryHits >= 2 && hasBusinessSignal(snippet) && hasLocationSignal) return true;
@@ -391,12 +397,31 @@ function looksLikeCreatorProfile(text) {
   return /\b(foodie|foodies|blogger|vlog|vlogs|travel|traveller|traveler|creator|influencer|stories|diaries|girl|boy|official_swarna|magazine|personal|artist|actor|actress|singer|dancer|youtuber)\b/i.test(text);
 }
 
+function looksLikeCreatorSnippet(text) {
+  return /\b(dm for collab|collab|collaboration|food vlogger|vlogger|blogger|content creator|creator|influencer|travel blogger|food blogger)\b/i.test(text);
+}
+
 function hasBusinessSignal(text) {
   return /\b(menu|booking|bookings|order|orders|delivery|deliver|dine|dining|restaurant|cafe|bakery|cakes|dessert|coffee|tea|shop|store|outlet|branch|reservation|whatsapp|contact|open|hours|located|address|services)\b/i.test(text);
 }
 
 function hasBusinessProfileNameSignal(text) {
   return /\b(cafe|coffee|restaurant|resto|bistro|kitchen|foods|food|bakery|cakes|dessert|tea|chai|hotel|grill|diner|eatery|catering|caterers|cuisine|biriyani|biryani|shawarma|pizza|burger|bbq|barbeque|juice|icecream|sweets|snacks|dhaba|mess)\b/i.test(text);
+}
+
+function isBadMentionContext(content, mentionIndex, handle) {
+  const before = content.slice(Math.max(0, mentionIndex - 45), mentionIndex).toLowerCase();
+  const after = content.slice(mentionIndex, mentionIndex + handle.length + 45).toLowerCase();
+  return /\b(admin|collab|collaboration|managed by|dm)\s*:?\s*$/i.test(before)
+    || /\b(admin|collab|collaboration|managed by|dm for collab)\b/i.test(after);
+}
+
+function isAdminOrCreatorMention(url, snippet) {
+  const handle = String(url || '').split('/').filter(Boolean).pop() || '';
+  if (!handle) return false;
+  const escaped = handle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`\\b(admin|collab|collaboration|managed by|dm)\\s*:?\\s*@${escaped}\\b|@${escaped}\\b.{0,35}\\b(admin|collab|collaboration|managed by|dm for collab)\\b`, 'i');
+  return pattern.test(snippet || '');
 }
 
 function titleCase(value) {
