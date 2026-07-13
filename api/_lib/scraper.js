@@ -269,7 +269,8 @@ function addMentionedProfiles(results, seen, title = '', snippet = '', angle = '
     const handle = match[1].toLowerCase().replace(/\.+$/, '');
     if (!handle || blockedMentions.has(handle)) continue;
     if (isBadMentionContext(content, match.index, handle)) continue;
-    addSerpResult(results, seen, `https://instagram.com/${handle}`, handle, snippet, angle, 'mention');
+    const mentionSnippet = mentionContext(content, match.index, handle);
+    addSerpResult(results, seen, `https://instagram.com/${handle}`, handle, mentionSnippet, angle, 'mention');
   }
 }
 
@@ -385,7 +386,7 @@ function isRelevantInstagramLead(category, location, result) {
   const hasLocationSignal = locationSignals.some((term) => snippet.includes(term));
   if (result.source_type === 'mention') {
     if (hasBusinessProfileNameSignal(titleAndUrl)) return true;
-    return hasLocationSignal && hasBusinessSignal(snippet);
+    return hasLocationSignal && hasBusinessSignal(snippet) && hasVenueMentionSignal(snippet);
   }
 
   const snippetCategoryHits = terms.filter((term) => snippet.includes(term.toLowerCase())).length;
@@ -398,7 +399,7 @@ function looksLikeCreatorProfile(text) {
 }
 
 function looksLikeCreatorSnippet(text) {
-  return /\b(dm for collab|collab|collaboration|food vlogger|vlogger|blogger|content creator|creator|influencer|travel blogger|food blogger)\b/i.test(text);
+  return /\b(dm for collab|collab|collaboration|food vlogger|vlogger|blogger|content creator|creator|influencer|travel blogger|food blogger|wall art|mural|artist)\b/i.test(text);
 }
 
 function hasBusinessSignal(text) {
@@ -422,6 +423,16 @@ function isAdminOrCreatorMention(url, snippet) {
   const escaped = handle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`\\b(admin|collab|collaboration|managed by|dm)\\s*:?\\s*@${escaped}\\b|@${escaped}\\b.{0,35}\\b(admin|collab|collaboration|managed by|dm for collab)\\b`, 'i');
   return pattern.test(snippet || '');
+}
+
+function mentionContext(content, mentionIndex, handle) {
+  const start = Math.max(0, mentionIndex - 90);
+  const end = Math.min(content.length, mentionIndex + handle.length + 90);
+  return cleanText(content.slice(start, end), 500);
+}
+
+function hasVenueMentionSignal(text) {
+  return /\b(location|located|at|spot|visit|visited|welcome to|try|tried|serves|serving|outlet|branch)\b/i.test(text);
 }
 
 function titleCase(value) {
