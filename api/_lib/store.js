@@ -1,9 +1,10 @@
 const fs = require('fs/promises');
+const os = require('os');
 const path = require('path');
 const { Pool } = require('pg');
 const { getStorageMode } = require('./config');
 
-const FILE_PATH = path.join(process.cwd(), '.data', 'prospector.json');
+const FILE_PATH = path.join(process.env.VERCEL ? os.tmpdir() : process.cwd(), '.data', 'prospector.json');
 const KV_PREFIX = 'prospector';
 
 function createStore() {
@@ -286,4 +287,3 @@ class PostgresStore {
 module.exports = {
   createStore
 };
-
