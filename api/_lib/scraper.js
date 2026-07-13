@@ -47,6 +47,7 @@ function buildGoogleBooleanQuery(category, location, angle, extraKeywords) {
   if (angle === 'instagram') {
     return [
       'site:instagram.com',
+      '"Followers"',
       categoryPart,
       locationPart,
       extraPart,
