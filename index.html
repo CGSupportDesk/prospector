@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff0bf">
+  <title>Prospector</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="noise"></div>
+  <main class="wrap">
+    <header class="topbar" aria-label="Header">
+      <div class="brand-card">
+        <div class="logo-mark">CG</div>
+        <div>
+          <div class="brand-title">Prospector</div>
+          <div class="brand-sub">Instagram Lead Engine</div>
+        </div>
+      </div>
+      <div class="price-pill">50 URLs / run</div>
+    </header>
+
+    <section class="hero card mega-card">
+      <div>
+        <p class="eyebrow">Google Boolean + SerpApi</p>
+        <h1>Find local business Instagram profiles.</h1>
+        <p class="hero-copy">Choose a country, region, districts, and business category. Prospector searches Google for Instagram business profiles, saves fresh URLs, and skips duplicates on later runs.</p>
+      </div>
+      <div class="hero-stat" aria-label="Target leads per run">
+        <span>50</span>
+        <small>fresh URLs</small>
+      </div>
+    </section>
+
+    <section class="grid-two">
+      <div class="card">
+        <div class="section-head">
+          <h2>Business categories</h2>
+          <span id="categoryCount" class="mini-badge">0 selected</span>
+        </div>
+        <div id="categoryGrid" class="chip-grid" aria-label="Business categories"></div>
+        <div class="add-row">
+          <input id="customCategory" type="text" placeholder="Add custom category, e.g. Ayurvedic clinic">
+          <button id="addCategoryBtn" class="btn btn-yellow" type="button">Add</button>
+        </div>
+        <div id="selectedCategories" class="selected-row" aria-label="Selected categories"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <h2>Location targeting</h2>
+          <span id="locationCount" class="mini-badge">0 selected</span>
+        </div>
+
+        <label class="label">Country</label>
+        <div class="segmented" aria-label="Country">
+          <button class="country-option active" data-country="IN" type="button">India</button>
+          <button class="country-option" data-country="GB" type="button">UK</button>
+        </div>
+
+        <label class="label with-space" for="regionSelect">Region</label>
+        <select id="regionSelect" class="full-input"></select>
+
+        <label class="label with-space">District / area</label>
+        <div id="districtGrid" class="chip-grid compact" aria-label="Districts"></div>
+
+        <div class="add-row">
+          <input id="customLocation" type="text" placeholder="Add custom place, comma separated">
+          <button id="addLocationBtn" class="btn btn-blue" type="button">Add</button>
+        </div>
+        <div id="selectedLocations" class="selected-row" aria-label="Selected locations"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Search setup</h2>
+        <span id="storageBadge" class="mini-badge">Checking server</span>
+      </div>
+      <label class="label" for="extraKeywords">Extra Boolean keywords</label>
+      <input id="extraKeywords" class="full-input" type="text" placeholder="Optional: bridal, menu, booking, WhatsApp, official">
+
+      <div class="angle-grid" aria-label="Lead sources">
+        <label class="angle checked"><input type="checkbox" name="angle" value="instagram" checked> Instagram</label>
+        <label class="angle"><input type="checkbox" name="angle" value="website"> Website</label>
+        <label class="angle"><input type="checkbox" name="angle" value="directory"> Directory</label>
+      </div>
+
+      <div class="run-row">
+        <button id="runBtn" class="btn btn-primary" type="button">Scrape 50 URLs</button>
+        <button id="loadBtn" class="btn btn-white" type="button">Load saved leads</button>
+        <a id="downloadCsvBtn" class="btn btn-green disabled" href="#" role="button">Download current CSV</a>
+        <a id="downloadAllCsvBtn" class="btn btn-yellow" href="api/export" role="button">Download all CSV</a>
+        <a class="btn btn-white" href="api/health" target="_blank" rel="noopener noreferrer">Server check</a>
+      </div>
+
+      <div id="statusBox" class="status-box hidden" role="status"></div>
+
+      <div id="queryPanel" class="query-panel hidden">
+        <div class="query-title">Google Boolean queries used</div>
+        <div id="queryList" class="query-list"></div>
+      </div>
+    </section>
+
+    <section class="card results-card">
+      <div class="section-head results-title-wrap">
+        <div>
+          <h2>Generated leads</h2>
+          <p id="runMeta" class="subline">No run yet. Start a scrape to save URLs.</p>
+        </div>
+        <div class="counter-stack">
+          <span><strong id="leadCount">0</strong> shown</span>
+          <span><strong id="dbCount">0</strong> saved total</span>
+        </div>
+      </div>
+
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">IG</div>
+        <h3>Your scraped URLs will appear here.</h3>
+        <p>Exports include business name, platform, URL, category, location, reason, generated date, and search query.</p>
+      </div>
+
+      <div class="table-wrap hidden" id="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Generated date</th>
+              <th>Business</th>
+              <th>Platform</th>
+              <th>Category</th>
+              <th>Location</th>
+              <th>URL</th>
+              <th>Why pitch</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "prospector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel-hosted SerpApi Google Boolean Instagram lead scraper.",
+  "scripts": {
+    "dev": "npx vercel dev",
+    "check": "node --check api/search.js && node --check api/leads.js && node --check api/export.js && node --check api/health.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
