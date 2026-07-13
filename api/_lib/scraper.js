@@ -41,7 +41,7 @@ function buildQueryObjects({ categories, locations, angles, extraKeywords, count
 
 function buildGoogleBooleanQuery(category, location, angle, extraKeywords) {
   const categoryPart = `"${category}"`;
-  const locationPart = `"${location}"`;
+  const locationPart = buildLocationBooleanPart(location);
   const extraPart = extraKeywords ? ` ${extraKeywords}` : '';
 
   if (angle === 'instagram') {
@@ -49,7 +49,6 @@ function buildGoogleBooleanQuery(category, location, angle, extraKeywords) {
       'site:instagram.com',
       categoryPart,
       locationPart,
-      '(contact OR booking OR order OR menu OR services OR shop OR clinic OR official)',
       extraPart,
       '-inurl:/p/',
       '-inurl:/reel/',
@@ -65,6 +64,16 @@ function buildGoogleBooleanQuery(category, location, angle, extraKeywords) {
   }
 
   return `${categoryPart} ${locationPart}${extraPart} (contact OR about OR services OR menu OR appointment OR address) -site:instagram.com -site:facebook.com -site:youtube.com -site:wikipedia.org`;
+}
+
+function buildLocationBooleanPart(location) {
+  const parts = String(location || '')
+    .split(',')
+    .map((part) => cleanText(part, 80))
+    .filter(Boolean)
+    .slice(0, 2);
+  const selected = parts.length ? parts : [cleanText(location, 120)];
+  return selected.map((part) => `"${part}"`).join(' ');
 }
 
 async function serpapiGoogleSearch(queryObject) {
@@ -238,4 +247,3 @@ module.exports = {
   businessNameFromResult,
   makeLeadReason
 };
-
