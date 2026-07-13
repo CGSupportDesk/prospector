@@ -47,6 +47,7 @@ function buildQueryObjects({ categories, locations, angles, extraKeywords, count
 function buildGoogleBooleanQueries(category, location, angle, extraKeywords) {
   const categoryPart = `"${category}"`;
   const categoryLoose = cleanText(category, 160).replace(/[/"()]/g, ' ');
+  const categoryOr = buildCategoryOrPart(category);
   const locationPart = buildLocationBooleanPart(location);
   const looseLocation = buildLooseLocationParts(location);
   const extraPart = extraKeywords ? ` ${extraKeywords}` : '';
@@ -60,19 +61,19 @@ function buildGoogleBooleanQueries(category, location, angle, extraKeywords) {
       },
       {
         label: 'profiles broad',
-        query: `site:instagram.com "Followers" ${categoryLoose} ${looseLocation}${extraPart} ${profileNoiseBlock}`
+        query: `site:instagram.com "Followers" ${categoryOr} ${looseLocation}${extraPart} ${profileNoiseBlock}`
       },
       {
         label: 'photos videos',
-        query: `site:instagram.com "Instagram photos and videos" ${categoryLoose} ${looseLocation}${extraPart} ${profileNoiseBlock}`
+        query: `site:instagram.com "Instagram photos and videos" ${categoryOr} ${looseLocation}${extraPart} ${profileNoiseBlock}`
       },
       {
         label: 'official pages',
-        query: `site:instagram.com (official OR contact OR booking OR WhatsApp) ${categoryLoose} ${looseLocation}${extraPart} ${profileNoiseBlock}`
+        query: `site:instagram.com (official OR contact OR booking OR WhatsApp) ${categoryOr} ${looseLocation}${extraPart} ${profileNoiseBlock}`
       },
       {
-        label: 'local profiles',
-        query: `site:instagram.com "Followers" ${looseLocation}${extraPart} ${profileNoiseBlock}`
+        label: 'business profiles',
+        query: `site:instagram.com "Followers" ${categoryOr} ${looseLocation} (menu OR booking OR order OR services OR shop OR clinic OR studio OR store)${extraPart} ${profileNoiseBlock}`
       }
     ]);
   }
@@ -107,6 +108,34 @@ function buildLooseLocationParts(location) {
     .filter(Boolean)
     .slice(0, 2)
     .join(' ');
+}
+
+function buildCategoryOrPart(category) {
+  const terms = categoryTerms(category);
+  if (terms.length <= 1) return terms[0] || cleanText(category, 80);
+  return `(${terms.map((term) => `"${term}"`).join(' OR ')})`;
+}
+
+function categoryTerms(category) {
+  const raw = cleanText(category, 160).toLowerCase();
+  const words = raw
+    .split(/[^a-z0-9]+/i)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 3 && !['and', 'the', 'shop', 'store', 'studio', 'centre', 'center'].includes(part));
+
+  const expansions = [];
+  if (/cafe|coffee|restaurant|food|bakery|cake/i.test(raw)) expansions.push('cafe', 'coffee', 'restaurant', 'food', 'bakery', 'cakes');
+  if (/salon|spa|beauty|makeup/i.test(raw)) expansions.push('salon', 'spa', 'beauty', 'makeup');
+  if (/boutique|clothing|fashion|textile/i.test(raw)) expansions.push('boutique', 'clothing', 'fashion', 'textiles');
+  if (/jewel/i.test(raw)) expansions.push('jewellery', 'jewelry', 'gold');
+  if (/gym|fitness/i.test(raw)) expansions.push('gym', 'fitness', 'workout');
+  if (/clinic|hospital|dental|doctor|ayur/i.test(raw)) expansions.push('clinic', 'doctor', 'hospital', 'ayurveda', 'dental');
+  if (/wedding|event/i.test(raw)) expansions.push('wedding', 'events', 'planner');
+  if (/photo/i.test(raw)) expansions.push('photography', 'photographer', 'studio');
+  if (/real estate|property/i.test(raw)) expansions.push('real estate', 'property', 'realtor');
+  if (/interior|furniture/i.test(raw)) expansions.push('interior', 'furniture', 'decor');
+
+  return [...new Set([...words, ...expansions])].slice(0, 8);
 }
 
 function uniqueQueries(items) {
@@ -282,6 +311,13 @@ function makeLeadReason(category, location, platform, snippet) {
   return snippet ? `${base} Search note: ${cleanText(snippet, 260)}` : base;
 }
 
+function isRelevantInstagramLead(category, result) {
+  const terms = categoryTerms(category);
+  if (!terms.length) return true;
+  const haystack = `${result.title || ''} ${result.snippet || ''} ${result.url || ''}`.toLowerCase();
+  return terms.some((term) => haystack.includes(term.toLowerCase()));
+}
+
 function titleCase(value) {
   return String(value || '').replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -291,5 +327,6 @@ module.exports = {
   serpapiGoogleSearch,
   platformFromUrl,
   businessNameFromResult,
+  isRelevantInstagramLead,
   makeLeadReason
 };

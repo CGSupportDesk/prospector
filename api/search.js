@@ -7,6 +7,7 @@ const {
   serpapiGoogleSearch,
   platformFromUrl,
   businessNameFromResult,
+  isRelevantInstagramLead,
   makeLeadReason
 } = require('./_lib/scraper');
 
@@ -75,6 +76,8 @@ module.exports = async function handler(req, res) {
         seenThisRun.add(result.url_hash);
 
         const platform = platformFromUrl(result.url);
+        if (platform === 'Instagram' && !isRelevantInstagramLead(queryObject.category, result)) continue;
+
         const lead = {
           run_id: runId,
           business_name: businessNameFromResult(result),
