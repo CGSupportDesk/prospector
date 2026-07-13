@@ -131,6 +131,12 @@ function buildLocationVariants(location) {
   if (lowerDistrict.includes('kochi')) {
     variants.add(`Cochin ${region}`.trim());
     variants.add(`Ernakulam ${region}`.trim());
+    variants.add(`Kakkanad ${region}`.trim());
+    variants.add(`Panampilly ${region}`.trim());
+    variants.add(`Fort Kochi ${region}`.trim());
+    variants.add(`Kaloor ${region}`.trim());
+    variants.add(`Edappally ${region}`.trim());
+    variants.add(`Vyttila ${region}`.trim());
   }
   if (lowerDistrict.includes('kozhikode')) variants.add(`Calicut ${region}`.trim());
   if (lowerDistrict.includes('alappuzha')) variants.add(`Alleppey ${region}`.trim());
@@ -374,16 +380,19 @@ function isRelevantInstagramLead(category, location, result) {
   if (result.source_type === 'mention' && isAdminOrCreatorMention(result.url, snippet)) return false;
 
   const hasStrongCategorySignal = terms.some((term) => titleAndUrl.includes(term.toLowerCase()));
-  if (hasStrongCategorySignal) return true;
+  const hasLocationSignal = locationSignals.some((term) => snippet.includes(term) || titleAndUrl.includes(term));
+  if (hasStrongCategorySignal) {
+    if (result.source_type === 'mention') return true;
+    return hasLocationSignal;
+  }
 
   if (result.source_type !== 'mention') {
-    return hasBusinessProfileNameSignal(titleAndUrl);
+    return hasBusinessProfileNameSignal(titleAndUrl) && hasLocationSignal;
   }
 
   const hasSnippetCategorySignal = terms.some((term) => snippet.includes(term.toLowerCase()));
   if (!hasSnippetCategorySignal) return false;
 
-  const hasLocationSignal = locationSignals.some((term) => snippet.includes(term));
   if (result.source_type === 'mention') {
     if (hasBusinessProfileNameSignal(titleAndUrl)) return true;
     return hasLocationSignal && hasBusinessSignal(snippet) && hasVenueMentionSignal(snippet);
@@ -395,7 +404,7 @@ function isRelevantInstagramLead(category, location, result) {
 }
 
 function looksLikeCreatorProfile(text) {
-  return /\b(foodie|foodies|blogger|vlog|vlogs|travel|traveller|traveler|creator|influencer|stories|diaries|girl|boy|official_swarna|magazine|personal|artist|actor|actress|singer|dancer|youtuber)\b/i.test(text);
+  return /foodie|foodies|blogger|vlog|vlogs|travel|traveller|traveler|creator|influencer|stories|diaries|\bgirl\b|\bboy\b|official_swarna|magazine|personal|artist|actor|actress|singer|dancer|youtuber/i.test(text);
 }
 
 function looksLikeCreatorSnippet(text) {
