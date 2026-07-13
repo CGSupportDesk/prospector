@@ -69,10 +69,6 @@ function buildGoogleBooleanQueries(category, location, angle, extraKeywords) {
           query: `site:instagram.com "Followers" ${categoryOr} ${locationVariant.query}${extraPart} ${profileNoiseBlock}`
         },
         {
-          label: `photos videos ${locationVariant.label}`,
-          query: `site:instagram.com "Instagram photos and videos" ${categoryOr} ${locationVariant.query}${extraPart} ${profileNoiseBlock}`
-        },
-        {
           label: `official pages ${locationVariant.label}`,
           query: `site:instagram.com (official OR contact OR booking OR WhatsApp) ${categoryOr} ${locationVariant.query}${extraPart} ${profileNoiseBlock}`
         },
@@ -236,6 +232,7 @@ async function serpapiGoogleSearch(queryObject) {
   const seen = new Set();
   for (const item of data.organic_results || []) {
     addSerpResult(results, seen, item.link, item.title, item.snippet, queryObject.angle);
+    addMentionedProfiles(results, seen, item.title, item.snippet, queryObject.angle);
   }
   for (const place of data.local_results?.places || []) {
     addSerpResult(results, seen, place.website || place.links?.website, place.title || place.name, place.address, queryObject.angle);
@@ -247,7 +244,7 @@ async function serpapiGoogleSearch(queryObject) {
   return results;
 }
 
-function addSerpResult(results, seen, rawUrl, title = '', snippet = '', angle = 'instagram') {
+function addSerpResult(results, seen, rawUrl, title = '', snippet = '', angle = 'instagram', sourceType = 'organic') {
   const url = normalizeUrl(rawUrl);
   if (!isUsefulLeadUrl(url, angle)) return;
   const urlHash = hashUrl(url);
@@ -257,8 +254,22 @@ function addSerpResult(results, seen, rawUrl, title = '', snippet = '', angle = 
     url,
     url_hash: urlHash,
     title: cleanText(title, 255),
-    snippet: cleanText(snippet, 500)
+    snippet: cleanText(snippet, 500),
+    source_type: sourceType
   });
+}
+
+function addMentionedProfiles(results, seen, title = '', snippet = '', angle = 'instagram') {
+  if (angle !== 'instagram') return;
+  const content = `${title || ''} ${snippet || ''}`;
+  const mentionPattern = /@([a-zA-Z0-9._]{2,30})/g;
+  const blockedMentions = new Set(['instagram', 'explore', 'reels', 'reel', 'official']);
+  let match;
+  while ((match = mentionPattern.exec(content)) !== null) {
+    const handle = match[1].toLowerCase().replace(/\.+$/, '');
+    if (!handle || blockedMentions.has(handle)) continue;
+    addSerpResult(results, seen, `https://instagram.com/${handle}`, handle, snippet, angle, 'mention');
+  }
 }
 
 function normalizeUrl(rawUrl) {
@@ -351,20 +362,33 @@ function isRelevantInstagramLead(category, location, result) {
   if (!terms.length) return true;
   const titleAndUrl = `${result.title || ''} ${result.url || ''}`.toLowerCase();
   const snippet = String(result.snippet || '').toLowerCase();
+  const locationSignals = buildLocationVariants(location)
+    .flatMap((variant) => variant.query.split(/\s+/))
+    .map((part) => part.toLowerCase())
+    .filter((part) => part.length >= 3);
+
+  if (looksLikeCreatorProfile(titleAndUrl) && result.source_type !== 'mention') return false;
+
   const hasStrongCategorySignal = terms.some((term) => titleAndUrl.includes(term.toLowerCase()));
   if (hasStrongCategorySignal) return true;
 
   const hasSnippetCategorySignal = terms.some((term) => snippet.includes(term.toLowerCase()));
   if (!hasSnippetCategorySignal) return false;
 
-  const snippetCategoryHits = terms.filter((term) => snippet.includes(term.toLowerCase())).length;
-  if (snippetCategoryHits >= 2) return true;
+  const hasLocationSignal = locationSignals.some((term) => snippet.includes(term));
+  if (result.source_type === 'mention') return hasLocationSignal || hasBusinessSignal(snippet);
 
-  const locationSignals = buildLocationVariants(location)
-    .flatMap((variant) => variant.query.split(/\s+/))
-    .map((part) => part.toLowerCase())
-    .filter((part) => part.length >= 3);
-  return locationSignals.some((term) => snippet.includes(term));
+  const snippetCategoryHits = terms.filter((term) => snippet.includes(term.toLowerCase())).length;
+  if (snippetCategoryHits >= 2 && hasBusinessSignal(snippet) && hasLocationSignal) return true;
+  return false;
+}
+
+function looksLikeCreatorProfile(text) {
+  return /\b(foodie|foodies|blogger|vlog|vlogs|travel|traveller|traveler|creator|influencer|stories|diaries|girl|boy|official_swarna|magazine|personal|artist|actor|actress|singer|dancer|youtuber)\b/i.test(text);
+}
+
+function hasBusinessSignal(text) {
+  return /\b(menu|booking|bookings|order|orders|delivery|deliver|dine|dining|restaurant|cafe|bakery|cakes|dessert|coffee|tea|shop|store|outlet|branch|reservation|whatsapp|contact|open|hours|located|address|services)\b/i.test(text);
 }
 
 function titleCase(value) {
