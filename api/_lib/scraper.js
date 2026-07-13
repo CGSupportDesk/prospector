@@ -346,11 +346,22 @@ function makeLeadReason(category, location, platform, snippet) {
   return snippet ? `${base} Search note: ${cleanText(snippet, 260)}` : base;
 }
 
-function isRelevantInstagramLead(category, result) {
+function isRelevantInstagramLead(category, location, result) {
   const terms = categoryTerms(category);
   if (!terms.length) return true;
-  const haystack = `${result.title || ''} ${result.snippet || ''} ${result.url || ''}`.toLowerCase();
-  return terms.some((term) => haystack.includes(term.toLowerCase()));
+  const titleAndUrl = `${result.title || ''} ${result.url || ''}`.toLowerCase();
+  const snippet = String(result.snippet || '').toLowerCase();
+  const hasStrongCategorySignal = terms.some((term) => titleAndUrl.includes(term.toLowerCase()));
+  if (hasStrongCategorySignal) return true;
+
+  const hasSnippetCategorySignal = terms.some((term) => snippet.includes(term.toLowerCase()));
+  if (!hasSnippetCategorySignal) return false;
+
+  const locationSignals = buildLocationVariants(location)
+    .flatMap((variant) => variant.query.split(/\s+/))
+    .map((part) => part.toLowerCase())
+    .filter((part) => part.length >= 3);
+  return locationSignals.some((term) => snippet.includes(term));
 }
 
 function titleCase(value) {

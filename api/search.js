@@ -76,7 +76,7 @@ module.exports = async function handler(req, res) {
         seenThisRun.add(result.url_hash);
 
         const platform = platformFromUrl(result.url);
-        if (platform === 'Instagram' && !isRelevantInstagramLead(queryObject.category, result)) continue;
+        if (platform === 'Instagram' && !isRelevantInstagramLead(queryObject.category, queryObject.location, result)) continue;
 
         const lead = {
           run_id: runId,
