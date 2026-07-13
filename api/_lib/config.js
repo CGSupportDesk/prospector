@@ -15,7 +15,7 @@ const CONFIG = {
   targetLeadsPerRun: 50,
   maxQueriesPerRun: 60,
   serpapiResultsPerQuery: 20,
-  serpapiStartOffsets: [0, 20, 40],
+  serpapiStartOffsets: [0, 20, 40, 60, 80],
   serpapiTimeoutMs: 30000,
   timezone: 'Asia/Kolkata'
 };

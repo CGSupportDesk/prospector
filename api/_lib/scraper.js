@@ -50,32 +50,40 @@ function buildGoogleBooleanQueries(category, location, angle, extraKeywords) {
   const categoryOr = buildCategoryOrPart(category);
   const locationPart = buildLocationBooleanPart(location);
   const looseLocation = buildLooseLocationParts(location);
+  const locationVariants = buildLocationVariants(location);
   const extraPart = extraKeywords ? ` ${extraKeywords}` : '';
 
   if (angle === 'instagram') {
     const profileNoiseBlock = '-inurl:/p/ -inurl:/reel/ -inurl:/reels/ -inurl:/stories/ -inurl:/explore/ -inurl:/tv/';
-    return uniqueQueries([
+    const items = [
       {
         label: 'profiles exact',
         query: `site:instagram.com "Followers" ${categoryPart} ${locationPart}${extraPart} ${profileNoiseBlock}`
-      },
-      {
-        label: 'profiles broad',
-        query: `site:instagram.com "Followers" ${categoryOr} ${looseLocation}${extraPart} ${profileNoiseBlock}`
-      },
-      {
-        label: 'photos videos',
-        query: `site:instagram.com "Instagram photos and videos" ${categoryOr} ${looseLocation}${extraPart} ${profileNoiseBlock}`
-      },
-      {
-        label: 'official pages',
-        query: `site:instagram.com (official OR contact OR booking OR WhatsApp) ${categoryOr} ${looseLocation}${extraPart} ${profileNoiseBlock}`
-      },
-      {
-        label: 'business profiles',
-        query: `site:instagram.com "Followers" ${categoryOr} ${looseLocation} (menu OR booking OR order OR services OR shop OR clinic OR studio OR store)${extraPart} ${profileNoiseBlock}`
       }
-    ]);
+    ];
+
+    for (const locationVariant of locationVariants) {
+      items.push(
+        {
+          label: `profiles broad ${locationVariant.label}`,
+          query: `site:instagram.com "Followers" ${categoryOr} ${locationVariant.query}${extraPart} ${profileNoiseBlock}`
+        },
+        {
+          label: `photos videos ${locationVariant.label}`,
+          query: `site:instagram.com "Instagram photos and videos" ${categoryOr} ${locationVariant.query}${extraPart} ${profileNoiseBlock}`
+        },
+        {
+          label: `official pages ${locationVariant.label}`,
+          query: `site:instagram.com (official OR contact OR booking OR WhatsApp) ${categoryOr} ${locationVariant.query}${extraPart} ${profileNoiseBlock}`
+        },
+        {
+          label: `business profiles ${locationVariant.label}`,
+          query: `site:instagram.com "Followers" ${categoryOr} ${locationVariant.query} (menu OR booking OR order OR services OR shop OR clinic OR studio OR store)${extraPart} ${profileNoiseBlock}`
+        }
+      );
+    }
+
+    return uniqueQueries(items);
   }
 
   if (angle === 'directory') {
@@ -108,6 +116,33 @@ function buildLooseLocationParts(location) {
     .filter(Boolean)
     .slice(0, 2)
     .join(' ');
+}
+
+function buildLocationVariants(location) {
+  const parts = String(location || '')
+    .split(',')
+    .map((part) => cleanText(part, 80))
+    .filter(Boolean);
+  const district = parts[0] || cleanText(location, 80);
+  const region = parts[1] || '';
+  const variants = new Set([`${district} ${region}`.trim()]);
+  const lowerDistrict = district.toLowerCase();
+
+  if (lowerDistrict.includes('thiruvananthapuram')) {
+    variants.add(`Trivandrum ${region}`.trim());
+    variants.add(`TVM ${region}`.trim());
+  }
+  if (lowerDistrict.includes('kochi')) {
+    variants.add(`Cochin ${region}`.trim());
+    variants.add(`Ernakulam ${region}`.trim());
+  }
+  if (lowerDistrict.includes('kozhikode')) variants.add(`Calicut ${region}`.trim());
+  if (lowerDistrict.includes('alappuzha')) variants.add(`Alleppey ${region}`.trim());
+
+  return [...variants].map((variant) => ({
+    label: variant,
+    query: variant
+  }));
 }
 
 function buildCategoryOrPart(category) {
