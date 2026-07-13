@@ -372,6 +372,10 @@ function isRelevantInstagramLead(category, location, result) {
   const hasStrongCategorySignal = terms.some((term) => titleAndUrl.includes(term.toLowerCase()));
   if (hasStrongCategorySignal) return true;
 
+  if (result.source_type !== 'mention') {
+    return hasBusinessProfileNameSignal(titleAndUrl);
+  }
+
   const hasSnippetCategorySignal = terms.some((term) => snippet.includes(term.toLowerCase()));
   if (!hasSnippetCategorySignal) return false;
 
@@ -389,6 +393,10 @@ function looksLikeCreatorProfile(text) {
 
 function hasBusinessSignal(text) {
   return /\b(menu|booking|bookings|order|orders|delivery|deliver|dine|dining|restaurant|cafe|bakery|cakes|dessert|coffee|tea|shop|store|outlet|branch|reservation|whatsapp|contact|open|hours|located|address|services)\b/i.test(text);
+}
+
+function hasBusinessProfileNameSignal(text) {
+  return /\b(cafe|coffee|restaurant|resto|bistro|kitchen|foods|food|bakery|cakes|dessert|tea|chai|hotel|grill|diner|eatery|catering|caterers|cuisine|biriyani|biryani|shawarma|pizza|burger|bbq|barbeque|juice|icecream|sweets|snacks|dhaba|mess)\b/i.test(text);
 }
 
 function titleCase(value) {
