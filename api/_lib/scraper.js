@@ -159,7 +159,7 @@ function categoryTerms(category) {
     .filter((part) => part.length >= 3 && !['and', 'the', 'shop', 'store', 'studio', 'centre', 'center'].includes(part));
 
   const expansions = [];
-  if (/cafe|coffee|restaurant|food|bakery|cake/i.test(raw)) expansions.push('cafe', 'coffee', 'restaurant', 'food', 'bakery', 'cakes');
+  if (/cafe|coffee|restaurant|food|bakery|cake/i.test(raw)) expansions.push('cafe', 'coffee', 'restaurant', 'food', 'bakery', 'cakes', 'dessert', 'tea', 'snacks', 'dining');
   if (/salon|spa|beauty|makeup/i.test(raw)) expansions.push('salon', 'spa', 'beauty', 'makeup');
   if (/boutique|clothing|fashion|textile/i.test(raw)) expansions.push('boutique', 'clothing', 'fashion', 'textiles');
   if (/jewel/i.test(raw)) expansions.push('jewellery', 'jewelry', 'gold');
@@ -356,6 +356,9 @@ function isRelevantInstagramLead(category, location, result) {
 
   const hasSnippetCategorySignal = terms.some((term) => snippet.includes(term.toLowerCase()));
   if (!hasSnippetCategorySignal) return false;
+
+  const snippetCategoryHits = terms.filter((term) => snippet.includes(term.toLowerCase())).length;
+  if (snippetCategoryHits >= 2) return true;
 
   const locationSignals = buildLocationVariants(location)
     .flatMap((variant) => variant.query.split(/\s+/))
