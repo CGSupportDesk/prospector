@@ -21,17 +21,22 @@ function buildQueryObjects({ categories, locations, angles, extraKeywords, count
   for (const category of categories) {
     for (const location of locations) {
       for (const angle of selectedAngles) {
-        const query = buildGoogleBooleanQuery(category, location, angle, extraKeywords);
-        objects.push({
-          category,
-          location,
-          country: country.name,
-          country_code: countryCode,
-          angle,
-          label: `${titleCase(angle)} - ${category} - ${location}`,
-          query,
-          google_url: `https://www.google.com/search?num=${CONFIG.serpapiResultsPerQuery}&q=${encodeURIComponent(query)}`
-        });
+        const queryItems = buildGoogleBooleanQueries(category, location, angle, extraKeywords);
+        for (const queryItem of queryItems) {
+          for (const start of CONFIG.serpapiStartOffsets) {
+            objects.push({
+              category,
+              location,
+              country: country.name,
+              country_code: countryCode,
+              angle,
+              label: `${titleCase(angle)} - ${category} - ${location} - ${queryItem.label}${start ? ` page ${Math.floor(start / CONFIG.serpapiResultsPerQuery) + 1}` : ''}`,
+              query: queryItem.query,
+              start,
+              google_url: `https://www.google.com/search?num=${CONFIG.serpapiResultsPerQuery}&start=${start}&q=${encodeURIComponent(queryItem.query)}`
+            });
+          }
+        }
       }
     }
   }
@@ -39,32 +44,50 @@ function buildQueryObjects({ categories, locations, angles, extraKeywords, count
   return objects.slice(0, CONFIG.maxQueriesPerRun);
 }
 
-function buildGoogleBooleanQuery(category, location, angle, extraKeywords) {
+function buildGoogleBooleanQueries(category, location, angle, extraKeywords) {
   const categoryPart = `"${category}"`;
+  const categoryLoose = cleanText(category, 160).replace(/[/"()]/g, ' ');
   const locationPart = buildLocationBooleanPart(location);
+  const looseLocation = buildLooseLocationParts(location);
   const extraPart = extraKeywords ? ` ${extraKeywords}` : '';
 
   if (angle === 'instagram') {
-    return [
-      'site:instagram.com',
-      '"Followers"',
-      categoryPart,
-      locationPart,
-      extraPart,
-      '-inurl:/p/',
-      '-inurl:/reel/',
-      '-inurl:/reels/',
-      '-inurl:/stories/',
-      '-inurl:/explore/',
-      '-inurl:/tv/'
-    ].join(' ').replace(/\s+/g, ' ').trim();
+    const profileNoiseBlock = '-inurl:/p/ -inurl:/reel/ -inurl:/reels/ -inurl:/stories/ -inurl:/explore/ -inurl:/tv/';
+    return uniqueQueries([
+      {
+        label: 'profiles exact',
+        query: `site:instagram.com "Followers" ${categoryPart} ${locationPart}${extraPart} ${profileNoiseBlock}`
+      },
+      {
+        label: 'profiles broad',
+        query: `site:instagram.com "Followers" ${categoryLoose} ${looseLocation}${extraPart} ${profileNoiseBlock}`
+      },
+      {
+        label: 'photos videos',
+        query: `site:instagram.com "Instagram photos and videos" ${categoryLoose} ${looseLocation}${extraPart} ${profileNoiseBlock}`
+      },
+      {
+        label: 'official pages',
+        query: `site:instagram.com (official OR contact OR booking OR WhatsApp) ${categoryLoose} ${looseLocation}${extraPart} ${profileNoiseBlock}`
+      },
+      {
+        label: 'local profiles',
+        query: `site:instagram.com "Followers" ${looseLocation}${extraPart} ${profileNoiseBlock}`
+      }
+    ]);
   }
 
   if (angle === 'directory') {
-    return `${categoryPart} ${locationPart}${extraPart} (site:justdial.com OR site:sulekha.com OR site:indiamart.com OR site:yell.com OR site:tripadvisor.com OR site:zomato.com)`;
+    return [{
+      label: 'directory',
+      query: `${categoryPart} ${locationPart}${extraPart} (site:justdial.com OR site:sulekha.com OR site:indiamart.com OR site:yell.com OR site:tripadvisor.com OR site:zomato.com)`
+    }];
   }
 
-  return `${categoryPart} ${locationPart}${extraPart} (contact OR about OR services OR menu OR appointment OR address) -site:instagram.com -site:facebook.com -site:youtube.com -site:wikipedia.org`;
+  return [{
+    label: 'website',
+    query: `${categoryPart} ${locationPart}${extraPart} (contact OR about OR services OR menu OR appointment OR address) -site:instagram.com -site:facebook.com -site:youtube.com -site:wikipedia.org`
+  }];
 }
 
 function buildLocationBooleanPart(location) {
@@ -75,6 +98,27 @@ function buildLocationBooleanPart(location) {
     .slice(0, 2);
   const selected = parts.length ? parts : [cleanText(location, 120)];
   return selected.map((part) => `"${part}"`).join(' ');
+}
+
+function buildLooseLocationParts(location) {
+  return String(location || '')
+    .split(',')
+    .map((part) => cleanText(part, 80))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(' ');
+}
+
+function uniqueQueries(items) {
+  const seen = new Set();
+  const queries = [];
+  for (const item of items) {
+    const query = item.query.replace(/\s+/g, ' ').trim();
+    if (!query || seen.has(query)) continue;
+    seen.add(query);
+    queries.push({ ...item, query });
+  }
+  return queries;
 }
 
 async function serpapiGoogleSearch(queryObject) {
@@ -91,6 +135,7 @@ async function serpapiGoogleSearch(queryObject) {
   url.searchParams.set('q', queryObject.query);
   url.searchParams.set('api_key', apiKey);
   url.searchParams.set('num', String(CONFIG.serpapiResultsPerQuery));
+  if (queryObject.start) url.searchParams.set('start', String(queryObject.start));
   url.searchParams.set('hl', 'en');
   url.searchParams.set('gl', country.gl);
   url.searchParams.set('google_domain', country.google_domain);

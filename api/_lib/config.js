@@ -13,8 +13,9 @@ const COUNTRIES = {
 
 const CONFIG = {
   targetLeadsPerRun: 50,
-  maxQueriesPerRun: 10,
-  serpapiResultsPerQuery: 100,
+  maxQueriesPerRun: 60,
+  serpapiResultsPerQuery: 20,
+  serpapiStartOffsets: [0, 20, 40],
   serpapiTimeoutMs: 30000,
   timezone: 'Asia/Kolkata'
 };
@@ -35,4 +36,3 @@ module.exports = {
   getCountry,
   getStorageMode
 };
-
